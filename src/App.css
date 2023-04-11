@@ -49,14 +49,19 @@
 .container{
   text-align: center;
   margin-top:30px;
+  align-items: center;
 }
 
 .bodyClass{
-  background:url("assets/img5.jpg");
-  background-size: auto;
+  background:url("assets/night.jpg");
+  background-size:cover;
+
 }
 
 .bodyClass.active{
-  background:url("assets/img7.jpg");
+  background:url("assets/day.jpg");
   background-size: auto;
+
 }
+
+

@@ -1,11 +1,3 @@
-
-  form input[name="city"],
-  form input[name="country"]{
-    border: 0;
-    border-bottom: 2px solid whitesmoke;
-    background-color: transparent;
-    color: rgb(255, 255, 255)!important;
-  }
   
   form input:focus{
     box-shadow: none !important;
@@ -13,7 +5,7 @@
   }
   
   ::placeholder{
-    color: rgb(255, 255, 255);
+  color: white;
   }
   
   

@@ -2,6 +2,17 @@ import "./App.css";
 import React, { useEffect, useState } from "react";
 import Form from "./components/Form/Form";
 import Weather from "./components/Weather/WeatherComponent";
+import MapApp from "./components/Map/MapComponent";
+import Box from "@mui/material/Box";
+import Tab from "@mui/material/Tab";
+import TabContext from "@mui/lab/TabContext";
+import TabList from "@mui/lab/TabList";
+import TabPanel from "@mui/lab/TabPanel";
+import IconButton from '@mui/material/IconButton';
+import ModeNightIcon from '@mui/icons-material/ModeNight';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import { List, ListItem, ListSubheader } from "@mui/material";
 
 const API_key = "8119b9a182f84edac1ba537349f1e5ff";
 
@@ -16,6 +27,21 @@ const weatherIcon = {
 };
 
 const App = (props) => {
+  const [lat, setLat] = useState([]);
+  const [long, setLong] = useState([]);
+  const [allData, setAllData] = useState([]);
+  const [todayList, setTodayList] = useState([]);
+  const [day2, setDay2] = useState([]);
+  const [day3, setDay3] = useState([]);
+  const [day4, setDay4] = useState([]);
+  const [day5, setDay5] = useState([]);
+
+  const [tabValue, setTabValue] = useState("1");
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
   const [state, setState] = useState({
     city: undefined,
     country: undefined,
@@ -30,7 +56,6 @@ const App = (props) => {
     lat: 0,
     lon: 0,
   });
-
   const [favourites, setFavourites] = useState([]);
 
   const calculateCelsius = (temp) => {
@@ -93,28 +118,35 @@ const App = (props) => {
     }
   };
 
-  const fetchApi = (city, country) => {
+  const fetchApi = (city, country, URL) => {
     if (city && country) {
       fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=${city},${country}&appid=${API_key}`
-        // `https://api.openweathermap.org/data/2.5/forecast/daily?q=${city},${country}&cnt=7&appid=${API_key}`
+        URL == "loc"
+          ? `https://api.openweathermap.org/data/2.5/forecast?q=${city},${country}&appid=${API_key}`
+          : `https://api.openweathermap.org/data/2.5/forecast?lat=${city}&lon=${country}&appid=${API_key}`
       )
         .then((response) => response.json())
         .then((data) => {
           setMyState(
-            data.coord.lat,
-            data.coord.lon,
-            data.name,
-            data.sys.country,
-            calculateCelsius(data.main.temp),
-            calculateCelsius(data.main.temp_min),
-            calculateCelsius(data.main.temp_max),
-            data.weather[0].description,
+            data.city.coord.lat,
+            data.city.coord.lon,
+            data.city.name,
+            data.city.country,
+            calculateCelsius(data.list[0].main.temp),
+            calculateCelsius(data.list[0].main.temp_max),
+            calculateCelsius(data.list[0].main.temp_min),
+            data.list[0].weather[0].description,
             false,
             true
           );
-          getWeatherIcon(data.weather[0].id);
-          console.log({ data });
+          getWeatherIcon(data.list[0].weather[0].icon);
+
+          setAllData(data);
+          setTodayList(data.list.slice(0, 3));
+          setDay2(data.list.slice(8, 11));
+          setDay3(data.list.slice(16, 19));
+          setDay4(data.list.slice(24, 27));
+          setDay5(data.list.slice(32, 35));
         })
         .catch(() => {
           setMyState();
@@ -123,6 +155,15 @@ const App = (props) => {
       setMyState();
     }
   };
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(function (position) {
+      setLat(position.coords.latitude);
+      setLong(position.coords.longitude);
+      fetchApi(position.coords.latitude, position.coords.longitude, "");
+    });
+  }, [lat, long]);
+
   const disableButton = () => {
     setState({ ...state, disabled: true });
   };
@@ -132,7 +173,7 @@ const App = (props) => {
     const city = e.target.elements.city.value;
     const country = e.target.elements.country.value;
 
-    fetchApi(city, country);
+    fetchApi(city, country, "loc");
     disableButton();
   };
 
@@ -140,15 +181,6 @@ const App = (props) => {
     fetchApi(city, country);
     disableButton();
   };
-
-  useEffect(() => {
-    fetchApi("cluj", "romania");
-    // Tried to see where the user is located
-    navigator.geolocation.getCurrentPosition(function (position) {
-      console.log("Latitude is :", position.coords.latitude);
-      console.log("Longitude is :", position.coords.longitude);
-    });
-  }, []);
 
   useEffect(() => {
     const items = JSON.parse(localStorage.getItem("favourites"));
@@ -166,48 +198,237 @@ const App = (props) => {
     const bodyElement = document.getElementById("bodyElementId");
     bodyElement.classList.remove("active");
   };
-
+ 
   const handleAddToFavourites = () => {
     const array = JSON.parse(localStorage.getItem("favourites")) || [];
-
     if (!array.includes(state.city)) {
       array.push(state.city);
     }
-
+    alert("Added successfully!")
     localStorage.setItem("favourites", JSON.stringify(array));
   };
 
   return (
     <div className="App">
-      <button onClick={handleDay}>DAY</button>
-      <button onClick={handleNight}>NIGHT</button>
-      <button onClick={handleAddToFavourites}>
-        Add this city to favourites !
-      </button>
-
-      <div style={{ color: "white" }}>
-        <h2>My fav cities:</h2>
-        {favourites.map((item) => (
-          <h4>{item}</h4>
-        ))}
-      </div>
-
+    <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", marginRight:"20px", marginTop:"20px"}}>
+    
+    <IconButton style={{ width:"fit-content",backgroundColor:"white"}} aria-label="day" onClick={handleDay}>
+      <LightModeIcon />
+    </IconButton>
+    <IconButton style={{ width:"fit-content",backgroundColor:"white"}} aria-label="night" onClick={handleNight}>
+      <ModeNightIcon />
+    </IconButton>
+    <IconButton style={{ width:"fit-content", backgroundColor:"white"}} aria-label="favorite" onClick={handleAddToFavourites}>
+      <FavoriteIcon/>
+    </IconButton>
+  
+    </div>
+    <List
+    style={{ marginLeft:"670px"}}
+    sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper'}}
+    component="nav"
+    aria-labelledby="favorite cities"
+    subheader={
+      <ListSubheader component="div" id="favorite cities">
+        Favorite Cities
+      </ListSubheader>
+    }
+  >
+      {favourites.map((item) => (
+        <ListItem>{item}</ListItem>
+      ))}
+      </List>
+      
       <Form loadWeather={getWeather} error={state.error} />
-
-      <Weather
-        city={state.city}
-        country={state.country}
-        temp_celcius={state.celsius}
-        temp_max={state.temp_max}
-        temp_min={state.temp_min}
-        description={state.description}
-        weatherIcon={icon}
-        showButton={state.showButton}
-        refreshWeather={refreshWeather}
-        disabled={state.disabled}
-        lat={state.lat}
-        lon={state.lon}
-      />
+      <Box
+        sx={{
+          width: "100%",
+          typography: "body1",
+        }}
+      >
+        <TabContext value={tabValue}>
+          <Box
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <TabList
+              onChange={handleTabChange}
+              aria-label="lab API tabs example"
+            >
+              <Tab style={{ color: "white" }} label="Today weather" value="1" />
+              <Tab style={{ color: "white" }} label="Day 2" value="2" />
+              <Tab style={{ color: "white" }} label="Day 3" value="3" />
+              <Tab style={{ color: "white" }} label="Day 4" value="4" />
+              <Tab style={{ color: "white" }} label="Day 5" value="5" />
+            </TabList>
+          </Box>
+          <TabPanel value="1">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {allData.list &&
+                todayList.map((item) => (
+                  <div>
+                    <Weather
+                      city={state.city}
+                      country={state.country}
+                      temp_celcius={calculateCelsius(item.main.temp)}
+                      temp_max={calculateCelsius(item.main.temp_max)}
+                      temp_min={calculateCelsius(item.main.temp_min)}
+                      description={item.weather[0].description}
+                      weatherIcon={icon}
+                      showButton={state.showButton}
+                      refreshWeather={refreshWeather}
+                      disabled={state.disabled}
+                      lat={state.lat}
+                      lon={state.lon}
+                      dt_txt={item.dt_txt}
+                    />
+                  </div>
+                ))}
+            </div>
+          </TabPanel>
+          <TabPanel value="2">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {allData.list &&
+                day2.map((item) => (
+                  <div>
+                    <Weather
+                      city={state.city}
+                      country={state.country}
+                      temp_celcius={calculateCelsius(item.main.temp)}
+                      temp_max={calculateCelsius(item.main.temp_max)}
+                      temp_min={calculateCelsius(item.main.temp_min)}
+                      description={item.weather[0].description}
+                      weatherIcon={icon}
+                      showButton={state.showButton}
+                      refreshWeather={refreshWeather}
+                      disabled={state.disabled}
+                      lat={state.lat}
+                      lon={state.lon}
+                      dt_txt={item.dt_txt}
+                    />
+                  </div>
+                ))}
+            </div>
+          </TabPanel>
+          <TabPanel value="3">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {allData.list &&
+                day3.map((item) => (
+                  <div>
+                    <Weather
+                      city={state.city}
+                      country={state.country}
+                      temp_celcius={calculateCelsius(item.main.temp)}
+                      temp_max={calculateCelsius(item.main.temp_max)}
+                      temp_min={calculateCelsius(item.main.temp_min)}
+                      description={item.weather[0].description}
+                      weatherIcon={icon}
+                      showButton={state.showButton}
+                      refreshWeather={refreshWeather}
+                      disabled={state.disabled}
+                      lat={state.lat}
+                      lon={state.lon}
+                      dt_txt={item.dt_txt}
+                    />
+                  </div>
+                ))}
+            </div>
+          </TabPanel>
+          <TabPanel value="4">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {allData.list &&
+                day4.map((item) => (
+                  <div>
+                    <Weather
+                      city={state.city}
+                      country={state.country}
+                      temp_celcius={calculateCelsius(item.main.temp)}
+                      temp_max={calculateCelsius(item.main.temp_max)}
+                      temp_min={calculateCelsius(item.main.temp_min)}
+                      description={item.weather[0].description}
+                      weatherIcon={icon}
+                      showButton={state.showButton}
+                      refreshWeather={refreshWeather}
+                      disabled={state.disabled}
+                      lat={state.lat}
+                      lon={state.lon}
+                      dt_txt={item.dt_txt}
+                    />
+                  </div>
+                ))}
+            </div>
+          </TabPanel>
+          <TabPanel value="5">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {allData.list &&
+                day5.map((item) => (
+                  <div>
+                    <Weather
+                      city={state.city}
+                      country={state.country}
+                      temp_celcius={calculateCelsius(item.main.temp)}
+                      temp_max={calculateCelsius(item.main.temp_max)}
+                      temp_min={calculateCelsius(item.main.temp_min)}
+                      description={item.weather[0].description}
+                      weatherIcon={icon}
+                      showButton={state.showButton}
+                      refreshWeather={refreshWeather}
+                      disabled={state.disabled}
+                      lat={state.lat}
+                      lon={state.lon}
+                      dt_txt={item.dt_txt}
+                    />
+                  </div>
+                ))}
+            </div>
+          </TabPanel>
+        </TabContext>
+      </Box>
+      {state.lon !== 0 && <MapApp lon={state.lon} lat={state.lat} />}
     </div>
   );
 };
